@@ -3,79 +3,55 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 
-/* ─── Modal genérico ────────────────────────────────────────────── */
+const inputCls = `w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white
+  placeholder-white/20 focus:outline-none focus:border-[#4f9eff]/50 focus:ring-1
+  focus:ring-[#4f9eff]/30 transition`;
+
+/* ─── Modal genérico ─────────────────────────────────────────────── */
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/10 bg-[#13131a] shadow-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-[#13131a] shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
           <h2 className="text-base font-semibold text-white">{title}</h2>
           <button onClick={onClose} className="text-white/30 hover:text-white/70 transition text-xl leading-none">×</button>
         </div>
-        <div className="px-6 py-5 overflow-y-auto">{children}</div>
+        <div className="px-6 py-5">{children}</div>
       </div>
     </div>
   );
 }
 
-function Field({ label, children }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-white/50 mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-const inputCls = `w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white
-  placeholder-white/20 focus:outline-none focus:border-[#4f9eff]/50 focus:ring-1
-  focus:ring-[#4f9eff]/30 transition`;
-
-/* ─── Formulário de modelo ──────────────────────────────────────── */
-function ModeloForm({ disciplinas, onSave, onCancel, saving }) {
-  const [titulo,      setTitulo]      = useState('');
-  const [disciplina,  setDisciplina]  = useState('');
-  const [escala,      setEscala]      = useState('1.5');
-  const [offsetY,     setOffsetY]     = useState('0');
-  const [loop,        setLoop]        = useState(true);
-  const [file,        setFile]        = useState(null);
-  const [uploading,   setUploading]   = useState(false);
-  const [uploadError, setUploadError] = useState('');
+/* ─── Formulário de novo modelo ──────────────────────────────────── */
+function NovoModeloForm({ onSave, onCancel, saving }) {
+  const [titulo,    setTitulo]    = useState('');
+  const [file,      setFile]      = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [error,     setError]     = useState('');
   const fileRef = useRef();
 
   async function handleSave() {
-    if (!file)        { setUploadError('Seleciona um ficheiro GLB.'); return; }
-    if (!titulo.trim()) { setUploadError('O título é obrigatório.'); return; }
-    if (!disciplina)  { setUploadError('Seleciona uma disciplina.'); return; }
+    if (!file)          { setError('Seleciona um ficheiro GLB.'); return; }
+    if (!titulo.trim()) { setError('O título é obrigatório.'); return; }
 
     setUploading(true);
-    setUploadError('');
+    setError('');
 
-    // 1. Upload para R2
+    // Upload para R2
     const formData = new FormData();
     formData.append('file', file);
-
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const res  = await fetch('/api/upload', { method: 'POST', body: formData });
     const json = await res.json();
 
     if (!res.ok) {
-      setUploadError(json.error ?? 'Erro no upload.');
+      setError(json.error ?? 'Erro no upload.');
       setUploading(false);
       return;
     }
 
-    // 2. Guardar no Supabase
-    onSave({
-      titulo:     titulo.trim(),
-      url:        json.url,
-      tipo:       'glb',
-      escala:     parseFloat(escala) || 1.5,
-      offset_y:   parseFloat(offsetY) || 0,
-      loop,
-      id_modulo:  Number(disciplina),
-    });
-
+    // Inserir no Supabase
+    await onSave({ titulo: titulo.trim(), url: json.url });
     setUploading(false);
   }
 
@@ -84,11 +60,12 @@ function ModeloForm({ disciplinas, onSave, onCancel, saving }) {
   return (
     <div className="space-y-4">
       {/* Upload GLB */}
-      <Field label="Ficheiro GLB *">
+      <div>
+        <label className="block text-xs font-medium text-white/50 mb-1.5">Ficheiro GLB *</label>
         <div
           onClick={() => fileRef.current?.click()}
-          className={`flex items-center gap-3 rounded-lg border-2 border-dashed px-4 py-4 cursor-pointer
-            transition ${file ? 'border-[#4f9eff]/40 bg-[#4f9eff]/5' : 'border-white/10 hover:border-white/20'}`}
+          className={`flex items-center gap-3 rounded-lg border-2 border-dashed px-4 py-4 cursor-pointer transition
+            ${file ? 'border-[#4f9eff]/40 bg-[#4f9eff]/5' : 'border-white/10 hover:border-white/20'}`}
         >
           <span className="text-2xl">{file ? '🧊' : '📁'}</span>
           <div className="flex-1 min-w-0">
@@ -105,9 +82,7 @@ function ModeloForm({ disciplinas, onSave, onCancel, saving }) {
             <button
               onClick={e => { e.stopPropagation(); setFile(null); fileRef.current.value = ''; }}
               className="text-white/25 hover:text-red-400 transition text-lg leading-none"
-            >
-              ×
-            </button>
+            >×</button>
           )}
         </div>
         <input
@@ -115,80 +90,25 @@ function ModeloForm({ disciplinas, onSave, onCancel, saving }) {
           type="file"
           accept=".glb"
           className="hidden"
-          onChange={e => { setFile(e.target.files[0] ?? null); setUploadError(''); }}
+          onChange={e => { setFile(e.target.files[0] ?? null); setError(''); }}
         />
-      </Field>
+      </div>
 
       {/* Título */}
-      <Field label="Título *">
+      <div>
+        <label className="block text-xs font-medium text-white/50 mb-1.5">Título *</label>
         <input
           className={inputCls}
           value={titulo}
           onChange={e => setTitulo(e.target.value)}
           placeholder="ex: Modelo de Personagem"
         />
-      </Field>
-
-      {/* Disciplina */}
-      <Field label="Disciplina *">
-        <select
-          className={inputCls + ' appearance-none'}
-          value={disciplina}
-          onChange={e => setDisciplina(e.target.value)}
-        >
-          <option value="">Selecionar disciplina…</option>
-          {disciplinas.map(d => (
-            <option key={d.id_modulo} value={d.id_modulo}>
-              {d.nome} {d.codigo ? `(${d.codigo})` : ''}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      {/* Escala e Offset Y */}
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Escala">
-          <input
-            className={inputCls}
-            type="number"
-            step="0.1"
-            min="0.1"
-            value={escala}
-            onChange={e => setEscala(e.target.value)}
-          />
-        </Field>
-        <Field label="Offset Y">
-          <input
-            className={inputCls}
-            type="number"
-            step="0.1"
-            value={offsetY}
-            onChange={e => setOffsetY(e.target.value)}
-          />
-        </Field>
       </div>
 
-      {/* Loop */}
-      <Field label="">
-        <label className="flex items-center gap-3 cursor-pointer group">
-          <div
-            onClick={() => setLoop(l => !l)}
-            className={`w-10 h-5 rounded-full transition-colors ${loop ? 'bg-[#4f9eff]' : 'bg-white/10'}`}
-          >
-            <div className={`w-4 h-4 rounded-full bg-white mt-0.5 transition-transform
-              ${loop ? 'translate-x-5.5' : 'translate-x-0.5'}`}
-            />
-          </div>
-          <span className="text-sm text-white/50 group-hover:text-white/70 transition">
-            Loop de animação
-          </span>
-        </label>
-      </Field>
-
       {/* Erro */}
-      {uploadError && (
+      {error && (
         <div className="rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-2.5">
-          <p className="text-xs text-red-400">{uploadError}</p>
+          <p className="text-xs text-red-400">{error}</p>
         </div>
       )}
 
@@ -215,119 +135,102 @@ function ModeloForm({ disciplinas, onSave, onCancel, saving }) {
   );
 }
 
-/* ─── Página principal ──────────────────────────────────────────── */
+/* ─── Página principal ───────────────────────────────────────────── */
 export default function ModelosPage() {
-  const [modelos,      setModelos]      = useState([]);
-  const [disciplinas,  setDisciplinas]  = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [showModal,    setShowModal]    = useState(false);
-  const [saving,       setSaving]       = useState(false);
+  const [modelos,       setModelos]       = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [showModal,     setShowModal]     = useState(false);
+  const [saving,        setSaving]        = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [deleting,     setDeleting]     = useState(false);
-  const [toast,        setToast]        = useState('');
+  const [deleting,      setDeleting]      = useState(false);
+  const [toast,         setToast]         = useState('');
 
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(''), 3500);
   }
 
-  /* ─── Carregar dados ─────────────────────────────────────────── */
+  /* ─── Listar modelos ─────────────────────────────────────────── */
   const fetchModelos = useCallback(async () => {
     setLoading(true);
     const supabase = createSupabaseBrowser();
+    const { data, error } = await supabase
+      .from('media_items')
+      .select('*')
+      .eq('tipo', 'modelo3d')
+      .order('id_media_items', { ascending: false });
 
-    const [{ data: mods }, { data: discs }] = await Promise.all([
-      supabase
-        .from('media_items')
-        .select(`
-          id, titulo, url, tipo, escala, offset_y, loop,
-          modulo_media ( modulo ( nome, codigo ) )
-        `)
-        .order('id', { ascending: false }),
-      supabase
-        .from('modulo')
-        .select('id_modulo, nome, codigo')
-        .order('nome', { ascending: true }),
-    ]);
-
-    setModelos(mods ?? []);
-    setDisciplinas(discs ?? []);
+    if (error) showToast('Erro ao carregar: ' + error.message);
+    setModelos(data ?? []);
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchModelos(); }, [fetchModelos]);
 
-  /* ─── Criar modelo ───────────────────────────────────────────── */
-  async function handleCreate(form) {
+  /* ─── Adicionar modelo ───────────────────────────────────────── */
+  async function handleCreate({ titulo, url }) {
     setSaving(true);
     const supabase = createSupabaseBrowser();
 
-    // Inserir em media_items
-    const { data: inserted, error: errInsert } = await supabase
+    const { error } = await supabase
       .from('media_items')
       .insert([{
-        titulo:   form.titulo,
-        url:      form.url,
-        tipo:     form.tipo,
-        escala:   form.escala,
-        offset_y: form.offset_y,
-        loop:     form.loop,
-      }])
-      .select('id')
-      .single();
+        titulo,
+        url,
+        tipo:        'modelo3d',
+        escala:      1.5,
+        offset_y:    0,
+        loop:        true,
+        id_programa: 1,
+      }]);
 
-    if (errInsert) {
-      showToast('Erro ao guardar modelo: ' + errInsert.message);
-      setSaving(false);
-      return;
-    }
-
-    // Associar ao módulo em modulo_media
-    const { error: errAssoc } = await supabase
-      .from('modulo_media')
-      .insert([{ id_modulo: form.id_modulo, id_media: inserted.id }]);
-
-    if (errAssoc) {
-      showToast('Modelo criado mas não foi associado à disciplina: ' + errAssoc.message);
+    if (error) {
+      showToast('Erro ao guardar: ' + error.message);
     } else {
-      showToast('Modelo criado e associado com sucesso!');
+      showToast('Modelo adicionado com sucesso!');
+      setShowModal(false);
+      fetchModelos();
     }
-
-    setShowModal(false);
     setSaving(false);
-    fetchModelos();
   }
 
   /* ─── Eliminar modelo ────────────────────────────────────────── */
   async function handleDelete() {
     setDeleting(true);
-    const supabase = createSupabaseBrowser();
 
-    // Remove associações
-    await supabase.from('modulo_media').delete().eq('id_media', confirmDelete);
-    const { error } = await supabase.from('media_items').delete().eq('id', confirmDelete);
+    // Encontra o URL do modelo a eliminar
+    const modelo = modelos.find(m => m.id_media_items === confirmDelete);
+
+    // 1. Apaga o ficheiro do R2
+    if (modelo?.url) {
+      const res = await fetch('/api/delete-model', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ url: modelo.url }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        showToast('Erro ao apagar ficheiro R2: ' + (json.error ?? res.statusText));
+        setDeleting(false);
+        return;
+      }
+    }
+
+    // 2. Apaga o registo no Supabase
+    const supabase = createSupabaseBrowser();
+    const { error } = await supabase
+      .from('media_items')
+      .delete()
+      .eq('id_media_items', confirmDelete);
 
     if (error) {
-      showToast('Erro ao eliminar: ' + error.message);
+      showToast('Ficheiro R2 apagado, mas erro no Supabase: ' + error.message);
     } else {
       showToast('Modelo eliminado.');
       fetchModelos();
     }
     setConfirmDelete(null);
     setDeleting(false);
-  }
-
-  /* ─── Nome da disciplina associada ──────────────────────────── */
-  function getDisciplinaLabel(modelo) {
-    const mm = modelo.modulo_media?.[0];
-    if (!mm?.modulo) return <span className="text-white/20">—</span>;
-    const { nome, codigo } = mm.modulo;
-    return (
-      <span className="text-white/60">
-        {nome}
-        {codigo && <span className="ml-1 text-xs text-white/25 font-mono">({codigo})</span>}
-      </span>
-    );
   }
 
   return (
@@ -346,7 +249,7 @@ export default function ModelosPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Modelos 3D</h1>
           <p className="text-sm text-white/35 mt-1">
-            {loading ? '…' : `${modelos.length} modelos`}
+            {loading ? '…' : `${modelos.length} modelo${modelos.length !== 1 ? 's' : ''}`}
           </p>
         </div>
         <button
@@ -372,7 +275,6 @@ export default function ModelosPage() {
             <thead>
               <tr className="text-xs text-white/30 border-b border-white/5 bg-white/2">
                 <th className="text-left px-5 py-3 font-medium">Título</th>
-                <th className="text-left px-5 py-3 font-medium">Disciplina</th>
                 <th className="text-left px-5 py-3 font-medium">Escala</th>
                 <th className="text-left px-5 py-3 font-medium">URL</th>
                 <th className="px-5 py-3 font-medium text-right">Ações</th>
@@ -381,20 +283,14 @@ export default function ModelosPage() {
             <tbody>
               {modelos.map((m, i) => (
                 <tr
-                  key={m.id}
+                  key={m.id_media_items}
                   className={`transition hover:bg-white/2 ${i !== modelos.length - 1 ? 'border-b border-white/5' : ''}`}
                 >
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
                       <span className="text-base">🧊</span>
-                      <div>
-                        <p className="font-medium text-white/85">{m.titulo ?? '—'}</p>
-                        <p className="text-xs text-white/25 mt-0.5 uppercase tracking-wide">{m.tipo}</p>
-                      </div>
+                      <p className="font-medium text-white/85">{m.titulo ?? '—'}</p>
                     </div>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm">
-                    {getDisciplinaLabel(m)}
                   </td>
                   <td className="px-5 py-3.5 text-white/45 font-mono text-xs">
                     {m.escala ?? 1.5}
@@ -404,22 +300,20 @@ export default function ModelosPage() {
                       href={m.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-[#4f9eff]/60 hover:text-[#4f9eff] transition truncate block max-w-[160px]"
+                      className="text-xs text-[#4f9eff]/60 hover:text-[#4f9eff] transition truncate block max-w-[200px]"
                       title={m.url}
                     >
                       {m.url?.split('/').pop() ?? m.url}
                     </a>
                   </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end">
-                      <button
-                        onClick={() => setConfirmDelete(m.id)}
-                        className="rounded-md border border-red-500/20 px-3 py-1.5 text-xs font-medium
-                                   text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
+                  <td className="px-5 py-3.5 text-right">
+                    <button
+                      onClick={() => setConfirmDelete(m.id_media_items)}
+                      className="rounded-md border border-red-500/20 px-3 py-1.5 text-xs font-medium
+                                 text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition"
+                    >
+                      Eliminar
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -431,8 +325,7 @@ export default function ModelosPage() {
       {/* Modal — Novo Modelo */}
       {showModal && (
         <Modal title="Novo Modelo 3D" onClose={() => setShowModal(false)}>
-          <ModeloForm
-            disciplinas={disciplinas}
+          <NovoModeloForm
             onSave={handleCreate}
             onCancel={() => setShowModal(false)}
             saving={saving}
