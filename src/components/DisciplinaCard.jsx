@@ -8,13 +8,16 @@
  *   • escala   — lida da BD (media_items.escala); fallback 1.5
  *   • offset_y — lida da BD (media_items.offset_y); fallback 0
  *   • rect     — bounding box do card no viewport para o canvas ficar centrado
+ *
+ * @prop {string} basePath  — prefixo do link, ex: '/ipvc/ecgm'.
+ *   Constrói o link como `${basePath}/${id_modulo}`.
  */
 
 import { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useModelViewer } from '@/context/ModelViewerContext';
 
-export default function DisciplinaCard({ disciplina }) {
+export default function DisciplinaCard({ disciplina, basePath = '' }) {
   const { setActiveModel } = useModelViewer();
   const isHoveredRef = useRef(false);
   const divRef       = useRef(null);
@@ -29,19 +32,14 @@ export default function DisciplinaCard({ disciplina }) {
       mi?.tipo?.toLowerCase() === 'glb'
     ) ?? null;
 
-  const glbUrl  = glbItem?.url ?? null;
-
-  /* ESCALA DOS MODELOS e offset definidos aqui no código — ajusta estes valores conforme o modelo */
-  const ESCALA   = 10;
-  const OFFSET_Y = 0;
+  const glbUrl  = glbItem?.url    ?? null;
+  const ESCALA  = glbItem?.escala   ?? 10;
+  const OFFSET_Y = glbItem?.offset_y ?? 0;
 
   /* ─── Handlers de hover ────────────────────────────────────────── */
   function onEnter() {
     if (!glbUrl || !divRef.current) return;
 
-    /* Guarda só o CENTRO do card (viewport-relative) e um tamanho generoso.
-       O canvas ficará centrado aqui e terá dimensão 2× o lado maior do card,
-       o que permite o modelo transbordar para fora dos limites do card.       */
     const r = divRef.current.getBoundingClientRect();
 
     isHoveredRef.current = true;
@@ -71,7 +69,7 @@ export default function DisciplinaCard({ disciplina }) {
   }, []);
 
   return (
-    <Link href={`/disciplina/${id_modulo}`} className="block group">
+    <Link href={`${basePath}/${id_modulo}`} className="block group">
       <div
         ref={divRef}
         className="relative overflow-hidden rounded-2xl border border-white/8 bg-[#13131a]

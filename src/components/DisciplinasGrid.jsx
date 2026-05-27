@@ -56,7 +56,7 @@ function Pill({ active, onClick, children }) {
 }
 
 /* ─── Componente principal ────────────────────────────────────── */
-export default function DisciplinasGrid({ modulos }) {
+export default function DisciplinasGrid({ modulos, basePath = '' }) {
   const [pesquisa,   setPesquisa]   = useState('');
   const [anoFilter,  setAnoFilter]  = useState(null); // null = todos
   const [semFilter,  setSemFilter]  = useState(null);
@@ -216,7 +216,7 @@ export default function DisciplinasGrid({ modulos }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visiveis.map(m => (
-            <DisciplinaCard key={m.id_modulo} disciplina={m} />
+            <DisciplinaCard key={m.id_modulo} disciplina={m} basePath={basePath} />
           ))}
         </div>
       )}
