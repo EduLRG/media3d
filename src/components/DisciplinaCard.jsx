@@ -32,9 +32,10 @@ export default function DisciplinaCard({ disciplina, basePath = '' }) {
       mi?.tipo?.toLowerCase() === 'glb'
     ) ?? null;
 
-  const glbUrl  = glbItem?.url    ?? null;
-  const ESCALA  = glbItem?.escala   ?? 10;
-  const OFFSET_Y = glbItem?.offset_y ?? 0;
+  const glbUrl     = glbItem?.url          ?? null;
+  const ESCALA     = glbItem?.escala       ?? 10;
+  const OFFSET_Y   = glbItem?.offset_y     ?? 0;
+  const ANIM_TIPO  = glbItem?.animacao_tipo ?? null;
 
   /* ─── Handlers de hover ────────────────────────────────────────── */
   function onEnter() {
@@ -44,9 +45,10 @@ export default function DisciplinaCard({ disciplina, basePath = '' }) {
 
     isHoveredRef.current = true;
     setActiveModel({
-      url:      glbUrl,
-      escala:   ESCALA,
-      offset_y: OFFSET_Y,
+      url:          glbUrl,
+      escala:       ESCALA,
+      offset_y:     OFFSET_Y,
+      animacao_tipo: ANIM_TIPO,
       rect: {
         centerX:    r.left + r.width  / 2,
         centerY:    r.top  + r.height / 2,

@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useGLTF, useAnimations } from '@react-three/drei';
+import * as THREE from 'three';
 
 const inputCls = `w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white
   placeholder-white/20 focus:outline-none focus:border-[#4f9eff]/50 focus:ring-1
@@ -38,7 +41,6 @@ function NovoModeloForm({ onSave, onCancel, saving }) {
     setUploading(true);
     setError('');
 
-    // Upload para R2
     const formData = new FormData();
     formData.append('file', file);
     const res  = await fetch('/api/upload', { method: 'POST', body: formData });
@@ -50,7 +52,6 @@ function NovoModeloForm({ onSave, onCancel, saving }) {
       return;
     }
 
-    // Inserir no Supabase
     await onSave({ titulo: titulo.trim(), url: json.url });
     setUploading(false);
   }
@@ -59,7 +60,6 @@ function NovoModeloForm({ onSave, onCancel, saving }) {
 
   return (
     <div className="space-y-4">
-      {/* Upload GLB */}
       <div>
         <label className="block text-xs font-medium text-white/50 mb-1.5">Ficheiro GLB *</label>
         <div
@@ -94,7 +94,6 @@ function NovoModeloForm({ onSave, onCancel, saving }) {
         />
       </div>
 
-      {/* Título */}
       <div>
         <label className="block text-xs font-medium text-white/50 mb-1.5">Título *</label>
         <input
@@ -105,14 +104,12 @@ function NovoModeloForm({ onSave, onCancel, saving }) {
         />
       </div>
 
-      {/* Erro */}
       {error && (
         <div className="rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-2.5">
           <p className="text-xs text-red-400">{error}</p>
         </div>
       )}
 
-      {/* Botões */}
       <div className="flex gap-3 pt-1">
         <button
           onClick={handleSave}
@@ -135,6 +132,238 @@ function NovoModeloForm({ onSave, onCancel, saving }) {
   );
 }
 
+/* ─── Constantes de animação do preview ──────────────────────────── */
+const PV_Z_START   = -40;
+const PV_Z_END     = -8;
+const PV_S_START   = 0.3;
+const PV_CYCLE_SEC = 4.0;
+const PV_T_IN      = 0.33;
+const PV_T_ROT     = 0.67;
+
+function pvEio(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+const ANIM_OPTS = [
+  { value: 'none',     label: 'Sem Animação', desc: 'Modelo estático no centro'          },
+  { value: 'zoom',     label: 'Zoom',         desc: 'Avança, roda 360° e recua em loop'  },
+  { value: 'rotation', label: 'Rotação',      desc: 'Roda continuamente no lugar'        },
+  { value: 'float',    label: 'Flutuação',    desc: 'Sobe e desce suavemente'            },
+  { value: 'pulse',    label: 'Pulsar',       desc: 'Aumenta e diminui de escala'        },
+  { value: 'custom',   label: 'Custom',       desc: 'Animação nativa do ficheiro GLB'    },
+];
+
+/* ─── Modelo 3D com animação para o preview ──────────────────────── */
+function PreviewModel({ url, escala, animacaoTipo }) {
+  const { scene, animations } = useGLTF(url);
+  const groupRef  = useRef(null);
+  const clockRef  = useRef(0);
+  const { camera } = useThree();
+  const { actions } = useAnimations(animations, groupRef);
+
+  useEffect(() => {
+    const all = Object.values(actions);
+    if (animacaoTipo === 'custom') {
+      all.forEach(a => a?.reset().play());
+    } else {
+      all.forEach(a => a?.stop());
+    }
+  }, [animacaoTipo, actions]);
+
+  useEffect(() => {
+    clockRef.current = 0;
+    if (groupRef.current) groupRef.current.rotation.y = 0;
+  }, [animacaoTipo]);
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+    clockRef.current += delta;
+    const t = clockRef.current;
+
+    switch (animacaoTipo) {
+      case 'zoom': {
+        const c = (t % PV_CYCLE_SEC) / PV_CYCLE_SEC;
+        let posZ, sc, rotY;
+        if (c < PV_T_IN) {
+          const p = pvEio(c / PV_T_IN);
+          posZ = THREE.MathUtils.lerp(PV_Z_START, PV_Z_END, p);
+          sc   = THREE.MathUtils.lerp(PV_S_START, escala, p);
+          rotY = 0;
+        } else if (c < PV_T_ROT) {
+          const p = (c - PV_T_IN) / (PV_T_ROT - PV_T_IN);
+          posZ = PV_Z_END; sc = escala; rotY = p * Math.PI * 2;
+        } else {
+          const p = pvEio((c - PV_T_ROT) / (1 - PV_T_ROT));
+          posZ = THREE.MathUtils.lerp(PV_Z_END, PV_Z_START, p);
+          sc   = THREE.MathUtils.lerp(escala, PV_S_START, p);
+          rotY = Math.PI * 2;
+        }
+        groupRef.current.position.set(0, 0, posZ);
+        groupRef.current.scale.setScalar(sc);
+        groupRef.current.rotation.y = rotY;
+        camera.lookAt(0, 0, posZ);
+        break;
+      }
+      case 'rotation':
+        groupRef.current.position.set(0, 0, PV_Z_END);
+        groupRef.current.scale.setScalar(escala);
+        groupRef.current.rotation.y += delta * 1.5;
+        camera.lookAt(0, 0, PV_Z_END);
+        break;
+      case 'float':
+        groupRef.current.position.set(0, Math.sin(t * 1.5) * 0.5, PV_Z_END);
+        groupRef.current.scale.setScalar(escala);
+        camera.lookAt(0, 0, PV_Z_END);
+        break;
+      case 'pulse':
+        groupRef.current.position.set(0, 0, PV_Z_END);
+        groupRef.current.scale.setScalar(escala + Math.sin(t * 2) * 0.1);
+        camera.lookAt(0, 0, PV_Z_END);
+        break;
+      default: // 'none' e 'custom'
+        groupRef.current.position.set(0, 0, PV_Z_END);
+        groupRef.current.scale.setScalar(escala);
+        groupRef.current.rotation.y = 0;
+        camera.lookAt(0, 0, PV_Z_END);
+        break;
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 0, PV_Z_START]} scale={[PV_S_START, PV_S_START, PV_S_START]}>
+      <primitive object={scene} />
+    </group>
+  );
+}
+
+/* ─── Modal de edição com preview 3D ────────────────────────────── */
+function EditModelModal({ modelo, onClose, onSave, saving }) {
+  const [escala,       setEscala]       = useState(modelo.escala ?? 1.5);
+  const [animacaoTipo, setAnimacaoTipo] = useState(modelo.animacao_tipo ?? 'zoom');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="relative z-10 flex flex-col rounded-2xl border border-[#4f9eff]/30 overflow-hidden shadow-2xl"
+        style={{ width: '80vw', height: '80vh' }}
+      >
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 bg-[#13131a] flex-shrink-0">
+          <div>
+            <h2 className="text-base font-semibold text-white">Editar Modelo</h2>
+            <p className="text-xs text-white/35 mt-0.5">{modelo.titulo}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/30 hover:text-white/70 transition text-2xl leading-none"
+          >×</button>
+        </div>
+
+        {/* Corpo */}
+        <div className="flex flex-1 min-h-0">
+
+          {/* Preview 3D */}
+          <div className="flex-none bg-[#0c0c0f]" style={{ width: '60%' }}>
+            <Canvas
+              camera={{ position: [0, 1, 0], fov: 45, near: 0.1, far: 200 }}
+              gl={{ alpha: true, antialias: true }}
+              style={{ width: '100%', height: '100%', background: 'transparent' }}
+            >
+              <ambientLight intensity={0.5} />
+              <directionalLight position={[10, 10, 5]} intensity={1.2} />
+              <pointLight position={[0, 4, PV_Z_END]} color="#4f9eff" intensity={3} distance={60} />
+              <Suspense fallback={null}>
+                <PreviewModel
+                  url={modelo.url}
+                  escala={escala}
+                  animacaoTipo={animacaoTipo}
+                />
+              </Suspense>
+            </Canvas>
+          </div>
+
+          {/* Controlos */}
+          <div className="flex-1 bg-[#13131a] overflow-y-auto p-6 flex flex-col gap-6 border-l border-white/8">
+
+            {/* Escala */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-medium text-white/70">Escala</label>
+                <span className="text-sm font-mono font-semibold text-[#4f9eff]">
+                  {escala.toFixed(1)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0.1}
+                max={35}
+                step={0.1}
+                value={escala}
+                onChange={e => setEscala(parseFloat(e.target.value))}
+                className="w-full accent-[#4f9eff] cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-white/25 mt-1">
+                <span>0.1</span>
+                <span>35</span>
+              </div>
+            </div>
+
+            {/* Tipo de animação */}
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-3">
+                Tipo de Animação
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {ANIM_OPTS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setAnimacaoTipo(opt.value)}
+                    className={`rounded-lg border p-3 text-left transition ${
+                      animacaoTipo === opt.value
+                        ? 'border-[#4f9eff] bg-[#4f9eff]/10'
+                        : 'border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5'
+                    }`}
+                  >
+                    <p className={`text-sm font-semibold ${
+                      animacaoTipo === opt.value ? 'text-[#4f9eff]' : 'text-white/70'
+                    }`}>
+                      {opt.label}
+                    </p>
+                    <p className="text-xs text-white/30 mt-0.5 leading-snug">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1" />
+
+            {/* Botões */}
+            <div className="flex gap-3 flex-shrink-0">
+              <button
+                onClick={() => onSave({ escala, animacao_tipo: animacaoTipo })}
+                disabled={saving}
+                className="flex-1 rounded-lg bg-[#4f9eff] py-2.5 text-sm font-semibold text-white
+                           hover:bg-[#3d8aef] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'A guardar…' : 'Guardar'}
+              </button>
+              <button
+                onClick={onClose}
+                disabled={saving}
+                className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium
+                           text-white/50 hover:bg-white/5 hover:text-white/80 transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Página principal ───────────────────────────────────────────── */
 export default function ModelosPage() {
   const [modelos,       setModelos]       = useState([]);
@@ -143,6 +372,8 @@ export default function ModelosPage() {
   const [saving,        setSaving]        = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting,      setDeleting]      = useState(false);
+  const [editModelo,    setEditModelo]    = useState(null);
+  const [savingEdit,    setSavingEdit]    = useState(false);
   const [toast,         setToast]         = useState('');
 
   function showToast(msg) {
@@ -194,14 +425,32 @@ export default function ModelosPage() {
     setSaving(false);
   }
 
+  /* ─── Editar modelo ──────────────────────────────────────────── */
+  async function handleEdit({ escala, animacao_tipo }) {
+    setSavingEdit(true);
+    const supabase = createSupabaseBrowser();
+
+    const { error } = await supabase
+      .from('media_items')
+      .update({ escala, animacao_tipo })
+      .eq('id_media_items', editModelo.id_media_items);
+
+    if (error) {
+      showToast('Erro ao guardar: ' + error.message);
+    } else {
+      showToast('Modelo atualizado com sucesso!');
+      setEditModelo(null);
+      fetchModelos();
+    }
+    setSavingEdit(false);
+  }
+
   /* ─── Eliminar modelo ────────────────────────────────────────── */
   async function handleDelete() {
     setDeleting(true);
 
-    // Encontra o URL do modelo a eliminar
     const modelo = modelos.find(m => m.id_media_items === confirmDelete);
 
-    // 1. Apaga o ficheiro do R2
     if (modelo?.url) {
       const res = await fetch('/api/delete-model', {
         method:  'DELETE',
@@ -216,7 +465,6 @@ export default function ModelosPage() {
       }
     }
 
-    // 2. Apaga o registo no Supabase
     const supabase = createSupabaseBrowser();
     const { error } = await supabase
       .from('media_items')
@@ -276,6 +524,7 @@ export default function ModelosPage() {
               <tr className="text-xs text-white/30 border-b border-white/5 bg-white/2">
                 <th className="text-left px-5 py-3 font-medium">Título</th>
                 <th className="text-left px-5 py-3 font-medium">Escala</th>
+                <th className="text-left px-5 py-3 font-medium">Animação</th>
                 <th className="text-left px-5 py-3 font-medium">URL</th>
                 <th className="px-5 py-3 font-medium text-right">Ações</th>
               </tr>
@@ -296,24 +545,38 @@ export default function ModelosPage() {
                     {m.escala ?? 1.5}
                   </td>
                   <td className="px-5 py-3.5">
+                    <span className="text-xs text-white/40 font-mono">
+                      {m.animacao_tipo ?? '—'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
                     <a
                       href={m.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-[#4f9eff]/60 hover:text-[#4f9eff] transition truncate block max-w-[200px]"
+                      className="text-xs text-[#4f9eff]/60 hover:text-[#4f9eff] transition truncate block max-w-[180px]"
                       title={m.url}
                     >
                       {m.url?.split('/').pop() ?? m.url}
                     </a>
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <button
-                      onClick={() => setConfirmDelete(m.id_media_items)}
-                      className="rounded-md border border-red-500/20 px-3 py-1.5 text-xs font-medium
-                                 text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition"
-                    >
-                      Eliminar
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setEditModelo(m)}
+                        className="rounded-md border border-[#4f9eff]/20 px-3 py-1.5 text-xs font-medium
+                                   text-[#4f9eff]/60 hover:bg-[#4f9eff]/10 hover:text-[#4f9eff] transition"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(m.id_media_items)}
+                        className="rounded-md border border-red-500/20 px-3 py-1.5 text-xs font-medium
+                                   text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -331,6 +594,16 @@ export default function ModelosPage() {
             saving={saving}
           />
         </Modal>
+      )}
+
+      {/* Modal — Editar Modelo */}
+      {editModelo && (
+        <EditModelModal
+          modelo={editModelo}
+          onClose={() => setEditModelo(null)}
+          onSave={handleEdit}
+          saving={savingEdit}
+        />
       )}
 
       {/* Modal — Confirmar eliminação */}

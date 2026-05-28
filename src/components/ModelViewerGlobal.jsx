@@ -67,9 +67,10 @@ export default function ModelViewerGlobal() {
     >
       {everActivated && (
         <ModelViewer
-          url={activeModel?.url      ?? null}
-          escala={activeModel?.escala   ?? 1.5}
-          offsetY={activeModel?.offset_y ?? 0}
+          url={activeModel?.url             ?? null}
+          escala={activeModel?.escala        ?? 1.5}
+          offsetY={activeModel?.offset_y     ?? 0}
+          animacaoTipo={activeModel?.animacao_tipo ?? null}
         />
       )}
     </div>

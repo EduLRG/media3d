@@ -34,7 +34,7 @@ async function getModulos(idPrograma) {
     .from('modulo')
     .select(`
       id_modulo, id_programa, nome, codigo, descricao, ano, semestre,
-      modulo_media ( media_items ( tipo, url, escala, offset_y, loop ) )
+      modulo_media ( media_items ( tipo, url, escala, offset_y, animacao_tipo, loop ) )
     `)
     .eq('id_programa', idPrograma)
     .order('ano',      { ascending: true })
