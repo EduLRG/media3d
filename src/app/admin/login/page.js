@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +17,8 @@ export default function LoginPage() {
     setError('');
 
     const supabase = createSupabaseBrowser();
+    
+    // 1. Fazer o Login no sistema nativo do Supabase Auth
     const { error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -28,7 +30,42 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/admin/dashboard');
+    // 2. Buscar o ID oficial gerado (UUID)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError('Não foi possível obter o utilizador autenticado.');
+      setLoading(false);
+      return;
+    }
+
+    // 3. Buscar TODAS as permissões deste utilizador
+    // Usamos o user.id sem o .single() para podermos receber múltiplas disciplinas
+    const { data: tiposUtilizador, error: tipoError } = await supabase
+      .from('tipo_utilizador')
+      .select('role')
+      .eq('id_utilizador', user.id);
+
+    if (tipoError || !tiposUtilizador || tiposUtilizador.length === 0) {
+      setError('Não foi possível obter as permissões do utilizador.');
+      setLoading(false);
+      return;
+    }
+
+    // 4. Analisar os papéis (roles) dentro do array devolvido
+    const isSuperAdmin = tiposUtilizador.some(t => t.role === 'superadmin');
+    const isGestor = tiposUtilizador.some(t => t.role === 'gestor' || t.role === 'gestor_disciplina');
+
+    // 5. Redirecionar para o painel correto
+    if (isSuperAdmin) {
+      router.push('/admin/dashboard');
+    } else if (isGestor) {
+      router.push('/gestor/dashboard');
+    } else {
+      setError('Tipo de utilizador sem acesso ao painel.');
+      setLoading(false);
+      return;
+    }
+    
     router.refresh();
   }
 

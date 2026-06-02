@@ -7,8 +7,8 @@ import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 
 const inputCls = `w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white
-  placeholder-white/20 focus:outline-none focus:border-[#4f9eff]/50 focus:ring-1
-  focus:ring-[#4f9eff]/30 transition`;
+  placeholder-white/20 focus:outline-none focus:border-[#a78bfa]/50 focus:ring-1
+  focus:ring-[#a78bfa]/30 transition`;
 
 /* ─── Modal genérico ─────────────────────────────────────────────── */
 function Modal({ title, onClose, children }) {
@@ -27,9 +27,9 @@ function Modal({ title, onClose, children }) {
 }
 
 /* ─── Formulário de novo modelo (COM SELEÇÃO DE DISCIPLINA) ──────── */
-function NovoModeloForm({ onSave, onCancel, saving, disciplinas }) {
+function NovoModeloForm({ onSave, onCancel, saving, disciplinasGestor }) {
   const [titulo,    setTitulo]    = useState('');
-  const [moduloId,  setModuloId]  = useState('');
+  const [moduloId,  setModuloId]  = useState(disciplinasGestor?.[0]?.id_modulo || '');
   const [file,      setFile]      = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error,     setError]     = useState('');
@@ -54,7 +54,7 @@ function NovoModeloForm({ onSave, onCancel, saving, disciplinas }) {
       return;
     }
 
-    const disciplinaSelecionada = disciplinas.find(d => d.id_modulo == moduloId);
+    const disciplinaSelecionada = disciplinasGestor.find(d => d.id_modulo == moduloId);
 
     await onSave({ 
       titulo: titulo.trim(), 
@@ -76,7 +76,7 @@ function NovoModeloForm({ onSave, onCancel, saving, disciplinas }) {
         <div
           onClick={() => fileRef.current?.click()}
           className={`flex items-center gap-3 rounded-lg border-2 border-dashed px-4 py-4 cursor-pointer transition
-            ${file ? 'border-[#4f9eff]/40 bg-[#4f9eff]/5' : 'border-white/10 hover:border-white/20'}`}
+            ${file ? 'border-[#a78bfa]/40 bg-[#a78bfa]/5' : 'border-white/10 hover:border-white/20'}`}
         >
           <span className="text-2xl">{file ? '🧊' : '📁'}</span>
           <div className="flex-1 min-w-0">
@@ -111,7 +111,7 @@ function NovoModeloForm({ onSave, onCancel, saving, disciplinas }) {
           className={inputCls}
           value={titulo}
           onChange={e => setTitulo(e.target.value)}
-          placeholder="ex: Célula Animal"
+          placeholder="ex: Motor V8"
         />
       </div>
 
@@ -123,7 +123,7 @@ function NovoModeloForm({ onSave, onCancel, saving, disciplinas }) {
           onChange={e => setModuloId(e.target.value)}
         >
           <option value="" disabled>Seleciona a disciplina...</option>
-          {disciplinas.map(d => (
+          {disciplinasGestor.map(d => (
             <option key={d.id_modulo} value={d.id_modulo}>{d.nome}</option>
           ))}
         </select>
@@ -139,8 +139,8 @@ function NovoModeloForm({ onSave, onCancel, saving, disciplinas }) {
         <button
           onClick={handleSave}
           disabled={isBusy}
-          className="flex-1 rounded-lg bg-[#4f9eff] py-2.5 text-sm font-semibold text-white
-                     hover:bg-[#3d8aef] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 rounded-lg bg-[#a78bfa] py-2.5 text-sm font-semibold text-white
+                     hover:bg-[#8b5cf6] transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {uploading ? 'A fazer upload…' : saving ? 'A guardar…' : 'Adicionar Modelo'}
         </button>
@@ -270,7 +270,7 @@ function EditModelModal({ modelo, onClose, onSave, saving }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative z-10 flex flex-col rounded-2xl border border-[#4f9eff]/30 overflow-hidden shadow-2xl"
+        className="relative z-10 flex flex-col rounded-2xl border border-[#a78bfa]/30 overflow-hidden shadow-2xl"
         style={{ width: '80vw', height: '80vh' }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 bg-[#13131a] flex-shrink-0">
@@ -290,7 +290,7 @@ function EditModelModal({ modelo, onClose, onSave, saving }) {
             >
               <ambientLight intensity={0.5} />
               <directionalLight position={[10, 10, 5]} intensity={1.2} />
-              <pointLight position={[0, 4, PV_Z_END]} color="#4f9eff" intensity={3} distance={60} />
+              <pointLight position={[0, 4, PV_Z_END]} color="#a78bfa" intensity={3} distance={60} />
               <Suspense fallback={null}>
                 <PreviewModel url={modelo.url} escala={escala} animacaoTipo={animacaoTipo} />
               </Suspense>
@@ -301,12 +301,12 @@ function EditModelModal({ modelo, onClose, onSave, saving }) {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="text-sm font-medium text-white/70">Escala</label>
-                <span className="text-sm font-mono font-semibold text-[#4f9eff]">{escala.toFixed(1)}</span>
+                <span className="text-sm font-mono font-semibold text-[#a78bfa]">{escala.toFixed(1)}</span>
               </div>
               <input
                 type="range" min={0.1} max={35} step={0.1}
                 value={escala} onChange={e => setEscala(parseFloat(e.target.value))}
-                className="w-full accent-[#4f9eff] cursor-pointer"
+                className="w-full accent-[#a78bfa] cursor-pointer"
               />
             </div>
 
@@ -319,11 +319,11 @@ function EditModelModal({ modelo, onClose, onSave, saving }) {
                     onClick={() => setAnimacaoTipo(opt.value)}
                     className={`rounded-lg border p-3 text-left transition ${
                       animacaoTipo === opt.value
-                        ? 'border-[#4f9eff] bg-[#4f9eff]/10'
+                        ? 'border-[#a78bfa] bg-[#a78bfa]/10'
                         : 'border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5'
                     }`}
                   >
-                    <p className={`text-sm font-semibold ${animacaoTipo === opt.value ? 'text-[#4f9eff]' : 'text-white/70'}`}>
+                    <p className={`text-sm font-semibold ${animacaoTipo === opt.value ? 'text-[#a78bfa]' : 'text-white/70'}`}>
                       {opt.label}
                     </p>
                     <p className="text-xs text-white/30 mt-0.5 leading-snug">{opt.desc}</p>
@@ -338,8 +338,8 @@ function EditModelModal({ modelo, onClose, onSave, saving }) {
               <button
                 onClick={() => onSave({ escala, animacao_tipo: animacaoTipo })}
                 disabled={saving}
-                className="flex-1 rounded-lg bg-[#4f9eff] py-2.5 text-sm font-semibold text-white
-                           hover:bg-[#3d8aef] transition disabled:opacity-50"
+                className="flex-1 rounded-lg bg-[#a78bfa] py-2.5 text-sm font-semibold text-white
+                           hover:bg-[#8b5cf6] transition disabled:opacity-50"
               >
                 {saving ? 'A guardar…' : 'Guardar'}
               </button>
@@ -357,10 +357,10 @@ function EditModelModal({ modelo, onClose, onSave, saving }) {
   );
 }
 
-/* ─── Página principal ───────────────────────────────────────────── */
-export default function ModelosPage() {
+/* ─── Página principal direcionada ao Gestor ─────────────────────── */
+export default function GestorModelosPage() {
   const [modelos,           setModelos]           = useState([]);
-  const [todasDisciplinas,  setTodasDisciplinas]  = useState([]);
+  const [disciplinasGestor, setDisciplinasGestor] = useState([]);
   const [loading,           setLoading]           = useState(true);
   const [showModal,         setShowModal]         = useState(false);
   const [saving,            setSaving]            = useState(false);
@@ -375,40 +375,65 @@ export default function ModelosPage() {
     setTimeout(() => setToast(''), 3500);
   }
 
-  /* ─── Listar modelos e todas as disciplinas ────────────────────── */
+  /* ─── Listar modelos e as disciplinas permitidas ───────────────── */
   const fetchDados = useCallback(async () => {
     setLoading(true);
     const supabase = createSupabaseBrowser();
     
-    // 1. Procurar TODAS as disciplinas para o Admin
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // 1. Procurar as permissões e IDs das disciplinas deste Gestor
+    const { data: permissoes } = await supabase
+      .from("tipo_utilizador")
+      .select("id_modulo")
+      .eq("id_utilizador", user.id)
+      .not('id_modulo', 'is', null);
+
+    const moduloIds = Array.from(new Set((permissoes || []).map(p => p.id_modulo)));
+
+    if (moduloIds.length === 0) {
+      setModelos([]);
+      setDisciplinasGestor([]);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Procurar informações úteis das disciplinas (para usar no Dropdown)
     const { data: disciplinas } = await supabase
       .from('modulo')
       .select('id_modulo, nome, id_programa, programa:id_programa(id_entidade)')
-      .order('nome', { ascending: true });
+      .in('id_modulo', moduloIds);
       
-    setTodasDisciplinas(disciplinas || []);
+    setDisciplinasGestor(disciplinas || []);
 
-    // 2. Procurar TODOS os modelos
-    const { data: modelosData, error } = await supabase
-      .from('media_items')
-      .select('*')
-      .eq('tipo', 'modelo3d')
-      .order('id_media_items', { ascending: false });
-
-    // 3. Procurar as ligações para mostrar a disciplina correta na tabela
+    // 3. Descobrir os modelos ligados a estas disciplinas
     const { data: ligacoes } = await supabase
       .from('modulo_media')
-      .select('id_media_items, modulo:id_modulo(nome)');
+      .select('id_media_items, modulo:id_modulo(nome)')
+      .in('id_modulo', moduloIds);
+      
+    const mediaItemIds = Array.from(new Set((ligacoes || []).map(l => l.id_media_items)));
 
-    if (error) {
-      showToast('Erro ao carregar modelos: ' + error.message);
-      setModelos([]);
+    if (mediaItemIds.length > 0) {
+      const { data: modelosData, error } = await supabase
+        .from('media_items')
+        .select('*')
+        .eq('tipo', 'modelo3d')
+        .in('id_media_items', mediaItemIds)
+        .order('id_media_items', { ascending: false });
+
+      if (error) {
+        showToast('Erro ao carregar modelos: ' + error.message);
+      } else {
+        const modelosComDisciplina = modelosData.map(modelo => {
+          const ligacaoModelo = ligacoes.find(l => l.id_media_items === modelo.id_media_items);
+          return { ...modelo, nome_disciplina: ligacaoModelo?.modulo?.nome };
+        });
+        setModelos(modelosComDisciplina);
+      }
     } else {
-      const modelosComDisciplina = (modelosData || []).map(modelo => {
-        const ligacaoModelo = ligacoes?.find(l => l.id_media_items === modelo.id_media_items);
-        return { ...modelo, nome_disciplina: ligacaoModelo?.modulo?.nome };
-      });
-      setModelos(modelosComDisciplina);
+      setModelos([]);
     }
     
     setLoading(false);
@@ -431,8 +456,8 @@ export default function ModelosPage() {
         escala:      1.5,
         offset_y:    0,
         loop:        true,
-        id_programa: id_programa || null,
-        id_entidade: Array.isArray(id_entidade) ? id_entidade[0]?.id_entidade : id_entidade?.id_entidade || null
+        id_programa: id_programa,
+        id_entidade: Array.isArray(id_entidade) ? id_entidade[0]?.id_entidade : id_entidade?.id_entidade
       }])
       .select()
       .single();
@@ -474,7 +499,7 @@ export default function ModelosPage() {
     if (error) {
       showToast('Erro ao guardar: ' + error.message);
     } else {
-      showToast('Modelo atualizado com sucesso!');
+      showToast('Modelo updated com sucesso!');
       setEditModelo(null);
       fetchDados();
     }
@@ -502,7 +527,6 @@ export default function ModelosPage() {
     }
 
     const supabase = createSupabaseBrowser();
-    // A Foreign Key (ON DELETE CASCADE) apagará a relação no modulo_media automaticamente.
     const { error } = await supabase
       .from('media_items')
       .delete()
@@ -531,15 +555,15 @@ export default function ModelosPage() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Modelos 3D</h1>
+          <h1 className="text-2xl font-bold text-white">Modelos 3D <span className="text-[#a78bfa] text-base">(Área do Gestor)</span></h1>
           <p className="text-sm text-white/35 mt-1">
-            {loading ? '…' : `${modelos.length} modelo${modelos.length !== 1 ? 's' : ''}`}
+            {loading ? '…' : `${modelos.length} modelo${modelos.length !== 1 ? 's' : ''} nas suas disciplinas`}
           </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-[#4f9eff] px-4 py-2.5 text-sm
-                     font-semibold text-white hover:bg-[#3d8aef] transition"
+          className="flex items-center gap-2 rounded-lg bg-[#a78bfa] px-4 py-2.5 text-sm
+                     font-semibold text-white hover:bg-[#8b5cf6] transition"
         >
           <span className="text-lg leading-none">+</span>
           Novo Modelo
@@ -550,9 +574,13 @@ export default function ModelosPage() {
       <div className="rounded-xl border border-white/8 bg-[#13131a] overflow-hidden">
         {loading ? (
           <div className="py-12 text-center text-sm text-white/25">A carregar…</div>
+        ) : disciplinasGestor.length === 0 ? (
+          <div className="py-12 text-center text-sm text-white/25 text-red-300/80">
+            Ainda não lhe foi associada nenhuma disciplina. Fale com um Administrador.
+          </div>
         ) : modelos.length === 0 ? (
           <div className="py-12 text-center text-sm text-white/25">
-            Nenhum modelo encontrado. Faz o upload do primeiro!
+            Nenhum modelo associado às suas disciplinas. Crie o primeiro!
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -574,7 +602,7 @@ export default function ModelosPage() {
                 >
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-base text-[#4f9eff]">🧊</span>
+                      <span className="text-base text-[#a78bfa]">🧊</span>
                       <p className="font-medium text-white/85">{m.titulo ?? '—'}</p>
                     </div>
                   </td>
@@ -585,7 +613,7 @@ export default function ModelosPage() {
                     {m.escala ?? 1.5}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className="text-xs text-[#4f9eff] bg-[#4f9eff]/10 px-2 py-1 rounded-md font-mono">
+                    <span className="text-xs text-[#a78bfa] bg-[#a78bfa]/10 px-2 py-1 rounded-md font-mono">
                       {m.animacao_tipo ?? 'none'}
                     </span>
                   </td>
@@ -594,7 +622,7 @@ export default function ModelosPage() {
                       href={m.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-[#4f9eff]/60 hover:text-[#4f9eff] transition truncate block max-w-[150px]"
+                      className="text-xs text-[#a78bfa]/60 hover:text-[#a78bfa] transition truncate block max-w-[150px]"
                       title={m.url}
                     >
                       {m.url?.split('/').pop() ?? m.url}
@@ -604,8 +632,8 @@ export default function ModelosPage() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setEditModelo(m)}
-                        className="rounded-md border border-[#4f9eff]/20 px-3 py-1.5 text-xs font-medium
-                                   text-[#4f9eff]/60 hover:bg-[#4f9eff]/10 hover:text-[#4f9eff] transition"
+                        className="rounded-md border border-[#a78bfa]/20 px-3 py-1.5 text-xs font-medium
+                                   text-[#a78bfa]/60 hover:bg-[#a78bfa]/10 hover:text-[#a78bfa] transition"
                       >
                         Editar
                       </button>
@@ -632,7 +660,7 @@ export default function ModelosPage() {
             onSave={handleCreate}
             onCancel={() => setShowModal(false)}
             saving={saving}
-            disciplinas={todasDisciplinas}
+            disciplinasGestor={disciplinasGestor}
           />
         </Modal>
       )}
