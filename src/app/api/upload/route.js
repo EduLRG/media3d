@@ -16,6 +16,20 @@ function getR2Client() {
   });
 }
 
+/* ─── Helper: Identificar o Content-Type pelo ficheiro ─────────── */
+function getContentType(fileName) {
+  const ext = fileName.split('.').pop().toLowerCase();
+  switch (ext) {
+    case 'glb':  return 'model/gltf-binary';
+    case 'png':  return 'image/png';
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg';
+    case 'mp4':  return 'video/mp4';
+    case 'webm': return 'video/webm';
+    default:     return 'application/octet-stream';
+  }
+}
+
 export async function POST(request) {
   try {
     const formData = await request.formData();
@@ -25,17 +39,33 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nenhum ficheiro enviado.' }, { status: 400 });
     }
 
-    // Valida extensão
-    const originalName = file.name ?? 'modelo.glb';
-    if (!originalName.toLowerCase().endsWith('.glb')) {
-      return NextResponse.json({ error: 'Apenas ficheiros .glb são aceites.' }, { status: 400 });
+    const originalName = file.name ?? 'ficheiro.bin';
+    const fileNameLower = originalName.toLowerCase();
+
+    // 1. Valida as extensões permitidas
+    const isAllowed = 
+      fileNameLower.endsWith('.glb') || 
+      fileNameLower.endsWith('.png') || 
+      fileNameLower.endsWith('.jpg') || 
+      fileNameLower.endsWith('.jpeg') || 
+      fileNameLower.endsWith('.mp4') || 
+      fileNameLower.endsWith('.webm');
+
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: 'Formato não suportado. Apenas GLB, PNG, JPG, MP4 ou WEBM.' }, 
+        { status: 400 }
+      );
     }
 
-    // Gera nome único: timestamp + nome original (sem espaços)
+    // 2. Gera nome único: timestamp + nome original (sem espaços)
     const safeName   = originalName.replace(/\s+/g, '-');
     const fileName   = `${Date.now()}-${safeName}`;
     const bucketName = process.env.R2_BUCKET_NAME ?? 'media3d-modelos';
     const publicUrl  = process.env.R2_PUBLIC_URL   ?? '';
+
+    // 3. Obtém o Content-Type dinâmico
+    const contentType = getContentType(originalName);
 
     // Converte para Buffer
     const arrayBuffer = await file.arrayBuffer();
@@ -48,7 +78,7 @@ export async function POST(request) {
         Bucket:      bucketName,
         Key:         fileName,
         Body:        buffer,
-        ContentType: 'model/gltf-binary',
+        ContentType: contentType, // Usa o tipo dinâmico aqui!
       })
     );
 
