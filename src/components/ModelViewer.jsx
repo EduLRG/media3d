@@ -1,28 +1,22 @@
 'use client';
 
-/**
- * ModelViewer — canvas WebGL singleton.
- *
- * Recebe { url, escala, offsetY, animacaoTipo } e anima o modelo GLB.
- * Quando url é null a cena fica vazia.
- *
- * animacaoTipo aceita: 'zoom' | 'rotation' | 'float' | 'pulse' | 'custom' | null
- *   null  → modelo estático no centro
- *   zoom  → avança, roda 360° e recua em loop
- */
-
 import { useRef, Suspense, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 
-/* ─── Constantes de animação ───────────────────────────────────── */
+/* ─── Constantes zoom / rotation / float / pulse ───────────────── */
 const Z_START   = -40;
 const Z_END     = -8;
 const S_START   = 0.3;
 const CYCLE_SEC = 4.0;
 const T_IN      = 0.33;
 const T_ROT     = 0.67;
+
+/* ─── Constantes breakout ──────────────────────────────────────── */
+const BZ_START   = -10;  /* modelo começa atrás do card (longe da câmara) */
+const BZ_END     =  4;   /* modelo sai para a frente do card               */
+const BCYCLE_SEC =  3.5;
 
 function eio(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -31,12 +25,24 @@ function eio(t) {
 /* ─── Cena com animação ────────────────────────────────────────── */
 function AnimScene({ url, escala, offsetY, animacaoTipo }) {
   const { scene, animations } = useGLTF(url);
-  const groupRef  = useRef(null);
-  const timeRef   = useRef(0);
+  const groupRef   = useRef(null);
+  const timeRef    = useRef(0);
   const { camera } = useThree();
   const { actions } = useAnimations(animations, groupRef);
 
-  /* Inicia/para animações nativas do GLB */
+  /* Reposiciona câmara conforme o modo de animação */
+  useEffect(() => {
+    if (animacaoTipo === 'breakout') {
+      camera.position.set(0, 0.5, 12);
+      camera.fov = 50;
+    } else {
+      camera.position.set(0, 1, 0);
+      camera.fov = 45;
+    }
+    camera.updateProjectionMatrix();
+  }, [animacaoTipo, camera]);
+
+  /* Animações nativas do GLB */
   useEffect(() => {
     const all = Object.values(actions);
     if (animacaoTipo === 'custom') {
@@ -46,7 +52,7 @@ function AnimScene({ url, escala, offsetY, animacaoTipo }) {
     }
   }, [animacaoTipo, actions]);
 
-  /* Reset do relógio e rotação ao mudar de tipo */
+  /* Reset do relógio ao mudar de tipo */
   useEffect(() => {
     timeRef.current = 0;
     if (groupRef.current) groupRef.current.rotation.y = 0;
@@ -58,6 +64,30 @@ function AnimScene({ url, escala, offsetY, animacaoTipo }) {
     const t = timeRef.current;
 
     switch (animacaoTipo) {
+      case 'breakout': {
+        const c = (t % BCYCLE_SEC) / BCYCLE_SEC;
+        let posZ, sc;
+        if (c < 0.45) {
+          /* avança: atrás → frente */
+          const p = eio(c / 0.45);
+          posZ = THREE.MathUtils.lerp(BZ_START, BZ_END, p);
+          sc   = THREE.MathUtils.lerp(S_START, escala, p);
+        } else if (c < 0.55) {
+          /* pausa na frente */
+          posZ = BZ_END;
+          sc   = escala;
+        } else {
+          /* recua */
+          const p = eio((c - 0.55) / 0.45);
+          posZ = THREE.MathUtils.lerp(BZ_END, BZ_START, p);
+          sc   = THREE.MathUtils.lerp(escala, S_START, p);
+        }
+        groupRef.current.position.set(0, offsetY, posZ);
+        groupRef.current.scale.setScalar(sc);
+        groupRef.current.rotation.y += delta * 0.8;
+        camera.lookAt(0, offsetY, posZ);
+        break;
+      }
       case 'zoom': {
         const c = (t % CYCLE_SEC) / CYCLE_SEC;
         let posZ, sc, rotY;
@@ -106,8 +136,10 @@ function AnimScene({ url, escala, offsetY, animacaoTipo }) {
     }
   });
 
-  const initZ = animacaoTipo === 'zoom' ? Z_START : Z_END;
-  const initS = animacaoTipo === 'zoom' ? S_START : escala;
+  const initZ = animacaoTipo === 'breakout' ? BZ_START
+              : animacaoTipo === 'zoom'     ? Z_START
+              : Z_END;
+  const initS = (animacaoTipo === 'zoom' || animacaoTipo === 'breakout') ? S_START : escala;
 
   return (
     <group ref={groupRef} position={[0, offsetY, initZ]} scale={[initS, initS, initS]}>

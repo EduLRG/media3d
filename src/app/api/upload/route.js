@@ -26,9 +26,22 @@ export async function POST(request) {
     }
 
     // Valida extensão
-    const originalName = file.name ?? 'modelo.glb';
-    if (!originalName.toLowerCase().endsWith('.glb')) {
-      return NextResponse.json({ error: 'Apenas ficheiros .glb são aceites.' }, { status: 400 });
+    const originalName = file.name ?? 'ficheiro';
+    const ext = originalName.slice(originalName.lastIndexOf('.')).toLowerCase();
+
+    const CONTENT_TYPES = {
+      '.glb':  'model/gltf-binary',
+      '.mp4':  'video/mp4',
+      '.webm': 'video/webm',
+      '.mov':  'video/quicktime',
+    };
+
+    const contentType = CONTENT_TYPES[ext];
+    if (!contentType) {
+      return NextResponse.json(
+        { error: 'Apenas .glb, .mp4, .webm ou .mov são aceites.' },
+        { status: 400 }
+      );
     }
 
     // Gera nome único: timestamp + nome original (sem espaços)
@@ -48,7 +61,7 @@ export async function POST(request) {
         Bucket:      bucketName,
         Key:         fileName,
         Body:        buffer,
-        ContentType: 'model/gltf-binary',
+        ContentType: contentType,
       })
     );
 

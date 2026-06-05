@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import TypewriterText from '@/components/TypewriterText';
 
 export const metadata = {
   title: 'media3d',
@@ -30,7 +31,12 @@ export default async function HomePage() {
       {/* ── Navbar ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b border-white/5 bg-[#0c0c0f]/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-bold tracking-tight text-white">media3d</span>
+          <TypewriterText
+              texto="media3d"
+              velocidade={100}
+              modo="once"
+              className="text-lg font-bold tracking-tight text-white"
+            />
           <a
             href="/admin/login"
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-1.5 text-xs
@@ -45,11 +51,25 @@ export default async function HomePage() {
       <section className="px-6 pb-12 pt-20 text-center">
         <div className="mx-auto max-w-2xl">
           <h1 className="text-6xl font-bold leading-none tracking-tight text-white">
-            media<span className="text-[#4f9eff]">3d</span>
+            <TypewriterText
+              texto="media3d"
+              velocidade={100}
+              modo="once"
+              highlight={{ from: 5, className: 'text-[#4f9eff]' }}
+            />
           </h1>
-          <p className="mt-5 text-lg text-white/45 leading-relaxed max-w-xl mx-auto">
-            Plataforma de visualização 3D de projetos académicos.
-            Seleciona uma instituição para explorar os seus cursos.
+          <p className="mt-5 text-lg text-white/45 leading-relaxed max-w-xl mx-auto min-h-[1.75rem]">
+            <TypewriterText
+              frases={[
+                'Plataforma de visualização 3D de projetos académicos.',
+                'Explora modelos 3D animados de cada disciplina.',
+                'Seleciona uma instituição para começar.',
+              ]}
+              velocidade={35}
+              velocidadeApagar={20}
+              pausaEntreFrases={2500}
+              modo="loop"
+            />
           </p>
         </div>
       </section>

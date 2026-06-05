@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import DisciplinasGrid from '@/components/DisciplinasGrid';
+import LogoHero from '@/components/LogoHero';
 
 /* ─── Fetches ───────────────────────────────────────────────────── */
 
@@ -27,6 +28,16 @@ async function getPrograma(idEntidade, codigoParam) {
 
   if (error || !data) return null;
   return data;
+}
+
+async function getLogo3D(idPrograma) {
+  const { data } = await supabase
+    .from('media_items')
+    .select('url, escala, animacao_tipo')
+    .eq('tipo', 'logo3d')
+    .eq('id_programa', idPrograma)
+    .maybeSingle();
+  return data ?? null;
 }
 
 async function getModulos(idPrograma) {
@@ -81,8 +92,11 @@ export default async function ProgramaPage({ params }) {
   const programa = await getPrograma(idEntidade, programaSlug);
   if (!programa) notFound();
 
-  /* 3. Módulos */
-  const { data: modulos, error } = await getModulos(programa.id_programa ?? programa.id);
+  /* 3. Módulos + Logo 3D */
+  const [{ data: modulos, error }, logo3d] = await Promise.all([
+    getModulos(programa.id_programa ?? programa.id),
+    getLogo3D(programa.id_programa ?? programa.id),
+  ]);
 
   /* basePath usado pelos DisciplinaCards para construir os links */
   const basePath = `/${entidadeSlug}/${programaSlug}`;
@@ -143,17 +157,23 @@ export default async function ProgramaPage({ params }) {
 
           {/* Pill com o nome da escola */}
           {nomeEscola && (
-            <span className="mb-6 inline-block rounded-full border border-[#4f9eff]/25
+            <span className="mb-8 inline-block rounded-full border border-[#4f9eff]/25
                              bg-[#4f9eff]/10 px-4 py-1 text-xs font-semibold uppercase
                              tracking-widest text-[#4f9eff]">
               {nomeEscola}
             </span>
           )}
 
-          {/* Título: código do curso */}
-          <h1 className="mt-4 text-6xl font-bold leading-none tracking-tight text-white">
-            <span className="text-[#4f9eff]">{codigoCurso}</span>
-          </h1>
+          {/* Título: logo 3D ou código do curso em texto */}
+          {logo3d ? (
+            <div className="mx-auto" style={{ width: 560, height: 560, marginTop: '-200px', marginBottom: '-200px' }}>
+              <LogoHero url={logo3d.url} escala={logo3d.escala ?? 1.0} animacao={logo3d.animacao_tipo ?? 'rotation'} width={560} height={560} />
+            </div>
+          ) : (
+            <h1 className="mt-4 text-6xl font-bold leading-none tracking-tight text-white">
+              <span className="text-[#4f9eff]">{codigoCurso}</span>
+            </h1>
+          )}
 
           {/* Descrição */}
           {descricao && (
