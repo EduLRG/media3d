@@ -36,9 +36,10 @@ function Field({ label, children }) {
   );
 }
 
-const inputCls = `w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#4f9eff]/50 focus:ring-1 focus:ring-[#4f9eff]/30 transition`;
+/* Nota: Cores ajustadas para o roxo do Gestor (#a78bfa) */
+const inputCls = `w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#a78bfa]/50 focus:ring-1 focus:ring-[#a78bfa]/30 transition`;
 
-/* ─── Galeria de Imagens e Vídeos do Projeto (Modo Edição) ──────── */
+/* ─── Galeria de Imagens e Vídeos do Projeto ────────────────────── */
 function GaleriaProjeto({ id_projetos }) {
   const [media, setMedia]         = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -108,7 +109,7 @@ function GaleriaProjeto({ id_projetos }) {
         className={`flex items-center justify-center gap-3 rounded-lg border-2 border-dashed px-4 py-6 transition
           ${uploading 
             ? 'border-white/5 bg-white/2 cursor-wait' 
-            : 'border-white/10 hover:border-[#4f9eff]/40 hover:bg-[#4f9eff]/5 cursor-pointer'}`}
+            : 'border-white/10 hover:border-[#a78bfa]/40 hover:bg-[#a78bfa]/5 cursor-pointer'}`}
       >
         <span className="text-3xl">{uploading ? '⏳' : '📥'}</span>
         <div>
@@ -172,11 +173,9 @@ function ProjetoForm({ initial = {}, modulos = [], onSave, onCancel, saving, isN
     projeto_url: initial.projeto_url ?? '',
   });
   
-  // Ficheiro da capa
   const [file, setFile] = useState(null);
   const fileRef = useRef();
 
-  // Ficheiros da galeria (só usado se for um projeto NOVO)
   const [galleryFiles, setGalleryFiles] = useState([]);
   const galleryRef = useRef();
 
@@ -196,7 +195,6 @@ function ProjetoForm({ initial = {}, modulos = [], onSave, onCancel, saving, isN
 
     let finalUrl = form.projeto_url;
 
-    // 1. Fazer upload do recurso principal (Capa), se existir
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
@@ -214,7 +212,6 @@ function ProjetoForm({ initial = {}, modulos = [], onSave, onCancel, saving, isN
       }
     }
 
-    // Passar os dados para a função do pai (incluindo a galeria se houver)
     await onSave({ ...form, id_modulo: Number(form.id_modulo), projeto_url: finalUrl, galleryFiles });
     setUploading(false);
   }
@@ -223,15 +220,15 @@ function ProjetoForm({ initial = {}, modulos = [], onSave, onCancel, saving, isN
 
   return (
     <div className="space-y-4">
-      {/* Upload do Ficheiro Principal (Capa) */}
+      {/* Upload da Capa Principal */}
       <div>
-        <label className="block text-xs font-medium text-white/50 mb-1.5">Capa do projeto (Opcional)</label>
+        <label className="block text-xs font-medium text-white/50 mb-1.5">Capa do Projeto (Opcional)</label>
         <div
           onClick={() => fileRef.current?.click()}
           className={`flex items-center gap-3 rounded-lg border-2 border-dashed px-4 py-4 cursor-pointer transition
-            ${file || form.projeto_url ? 'border-[#4f9eff]/40 bg-[#4f9eff]/5' : 'border-white/10 hover:border-white/20'}`}
+            ${file || form.projeto_url ? 'border-[#a78bfa]/40 bg-[#a78bfa]/5' : 'border-white/10 hover:border-white/20'}`}
         >
-          <span className="text-2xl text-[#4f9eff]">
+          <span className="text-2xl text-[#a78bfa]">
             {file || form.projeto_url ? (isVideoUrl(file?.name || form.projeto_url) ? '🎬' : '🖼️') : '📸'}
           </span>
           <div className="flex-1 min-w-0">
@@ -289,16 +286,16 @@ function ProjetoForm({ initial = {}, modulos = [], onSave, onCancel, saving, isN
         <textarea className={inputCls + ' resize-none'} rows={3} value={form.descricao} onChange={e => set('descricao', e.target.value)} />
       </Field>
 
-      {/* SECÇÃO DA GALERIA (SÓ VISÍVEL AO CRIAR UM PROJETO NOVO) */}
+      {/* Secção da Galeria (apenas ao criar projeto novo) */}
       {isNew && (
         <div className="pt-2 border-t border-white/10 mt-4">
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-[#4f9eff]">Galeria do Projeto (Opcional)</h3>
+            <h3 className="text-sm font-semibold text-[#a78bfa]">Galeria do Projeto (Opcional)</h3>
             <p className="text-xs text-white/40 mt-0.5">Podes já adicionar imagens ou vídeos detalhados.</p>
           </div>
           <div
             onClick={() => galleryRef.current?.click()}
-            className="flex items-center justify-center gap-3 rounded-lg border-2 border-dashed border-white/10 hover:border-[#4f9eff]/40 hover:bg-[#4f9eff]/5 px-4 py-6 cursor-pointer transition"
+            className="flex items-center justify-center gap-3 rounded-lg border-2 border-dashed border-white/10 hover:border-[#a78bfa]/40 hover:bg-[#a78bfa]/5 px-4 py-6 cursor-pointer transition"
           >
              <span className="text-3xl">📥</span>
              <div>
@@ -315,7 +312,6 @@ function ProjetoForm({ initial = {}, modulos = [], onSave, onCancel, saving, isN
             onChange={e => setGalleryFiles(prev => [...prev, ...Array.from(e.target.files)])}
           />
 
-          {/* Pré-visualização dos Ficheiros da Galeria a submeter */}
           {galleryFiles.length > 0 && (
             <div className="grid grid-cols-3 gap-2 mt-4">
               {galleryFiles.map((f, i) => {
@@ -354,7 +350,7 @@ function ProjetoForm({ initial = {}, modulos = [], onSave, onCancel, saving, isN
         <button
           onClick={handleSave}
           disabled={isBusy}
-          className="flex-1 rounded-lg bg-[#4f9eff] py-2.5 text-sm font-semibold text-white hover:bg-[#3d8aef] transition disabled:opacity-50"
+          className="flex-1 rounded-lg bg-[#a78bfa] py-2.5 text-sm font-semibold text-white hover:bg-[#8b5cf6] transition disabled:opacity-50"
         >
           {uploading || saving ? 'A processar e guardar…' : 'Guardar Projeto'}
         </button>
@@ -366,8 +362,8 @@ function ProjetoForm({ initial = {}, modulos = [], onSave, onCancel, saving, isN
   );
 }
 
-/* ─── Página Principal ──────────────────────────────────────────── */
-export default function ProjetosPage() {
+/* ─── Página Principal (Filtro por Gestor) ──────────────────────── */
+export default function GestorProjetosPage() {
   const [projetos, setProjetos]           = useState([]);
   const [modulosList, setModulosList]     = useState([]);
   const [loading, setLoading]             = useState(true);
@@ -386,17 +382,41 @@ export default function ProjetosPage() {
     setLoading(true);
     const supabase = createSupabaseBrowser();
     
+    // 1. Identificar o utilizador
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // 2. Procurar as permissões de módulos deste Gestor
+    const { data: permissoes } = await supabase
+      .from("tipo_utilizador")
+      .select("id_modulo")
+      .eq("id_utilizador", user.id)
+      .not('id_modulo', 'is', null);
+
+    const moduloIds = Array.from(new Set((permissoes || []).map(p => p.id_modulo)));
+
+    if (moduloIds.length === 0) {
+      setProjetos([]);
+      setModulosList([]);
+      setLoading(false);
+      return;
+    }
+
+    // 3. Buscar Projetos pertencentes AOS MÓDULOS PERMITIDOS
     const { data: projData, error: projError } = await supabase
       .from('projetos')
       .select('id_projetos, titulo, descricao, autores, id_modulo, projeto_url, modulo:id_modulo(nome)')
+      .in('id_modulo', moduloIds)
       .order('id_projetos', { ascending: false });
 
     if (!projError) setProjetos(projData ?? []);
     else showToast('Erro ao carregar projetos: ' + projError.message);
 
+    // 4. Buscar Módulos (para o dropdown do formulário) AOS QUAIS TEM ACESSO
     const { data: modData } = await supabase
       .from('modulo')
       .select('id_modulo, nome, codigo')
+      .in('id_modulo', moduloIds)
       .order('nome', { ascending: true });
       
     if (modData) setModulosList(modData);
@@ -410,7 +430,6 @@ export default function ProjetosPage() {
     setSaving(true);
     const supabase = createSupabaseBrowser();
     
-    // 1. Criar o Projeto
     const payload = {
       titulo:      form.titulo.trim(),
       descricao:   form.descricao.trim() || null,
@@ -419,7 +438,6 @@ export default function ProjetosPage() {
       projeto_url: form.projeto_url || null
     };
 
-    // A função .select().single() retorna o projeto criado (com o id_projetos recém-gerado)
     const { data: novoProjeto, error } = await supabase.from('projetos').insert([payload]).select().single();
 
     if (error) {
@@ -428,18 +446,14 @@ export default function ProjetosPage() {
       return;
     }
 
-    // 2. Se houver ficheiros na galeria para fazer upload
     if (form.galleryFiles && form.galleryFiles.length > 0) {
-      showToast('Projeto base criado! A processar galeria...');
-      
+      showToast('Projeto criado! A processar galeria...');
       for (const file of form.galleryFiles) {
         const formData = new FormData();
         formData.append('file', file);
-        
         try {
           const res = await fetch('/api/upload', { method: 'POST', body: formData });
           const json = await res.json();
-          
           if (res.ok) {
             const tipo = file.type.startsWith('video/') ? 'video' : 'imagem';
             await supabase.from('media_items').insert([{
@@ -450,7 +464,7 @@ export default function ProjetosPage() {
             }]);
           }
         } catch (err) {
-          console.error('Erro no upload da galeria do novo projeto:', err);
+          console.error('Erro na galeria:', err);
         }
       }
     }
@@ -507,12 +521,12 @@ export default function ProjetosPage() {
 
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Projetos</h1>
-          <p className="text-sm text-white/35 mt-1">{loading ? '…' : `${projetos.length} projeto${projetos.length !== 1 ? 's' : ''} registados`}</p>
+          <h1 className="text-2xl font-bold text-white">Projetos <span className="text-[#a78bfa] text-base">(Área do Gestor)</span></h1>
+          <p className="text-sm text-white/35 mt-1">{loading ? '…' : `${projetos.length} projeto${projetos.length !== 1 ? 's' : ''} nas suas disciplinas`}</p>
         </div>
         <button
           onClick={() => setModal('novo')}
-          className="flex items-center gap-2 rounded-lg bg-[#4f9eff] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#3d8aef] transition"
+          className="flex items-center gap-2 rounded-lg bg-[#a78bfa] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#8b5cf6] transition"
         >
           <span className="text-lg leading-none">+</span> Novo Projeto
         </button>
@@ -521,8 +535,12 @@ export default function ProjetosPage() {
       <div className="rounded-xl border border-white/8 bg-[#13131a] overflow-hidden">
         {loading ? (
           <div className="py-12 text-center text-sm text-white/25">A carregar…</div>
+        ) : modulosList.length === 0 ? (
+          <div className="py-12 text-center text-sm text-white/25 text-red-300/80">
+            Ainda não lhe foi associada nenhuma disciplina. Fale com um Administrador.
+          </div>
         ) : projetos.length === 0 ? (
-          <div className="py-12 text-center text-sm text-white/25">Nenhum projeto encontrado. Cria o primeiro!</div>
+          <div className="py-12 text-center text-sm text-white/25">Nenhum projeto associado às suas disciplinas. Crie o primeiro!</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -547,7 +565,7 @@ export default function ProjetosPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-white/5 bg-white/5 text-white/20 text-lg">📁</div>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-white/5 bg-white/5 text-[#a78bfa]/40 text-lg">📁</div>
                     )}
                   </td>
                   <td className="px-5 py-3.5">
@@ -560,7 +578,7 @@ export default function ProjetosPage() {
                   <td className="px-5 py-3.5 text-white/45 text-xs">{p.autores ?? '—'}</td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => setModal({ projeto: p })} className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium text-white/50 hover:bg-white/5 hover:text-white/80 transition">Gerir</button>
+                      <button onClick={() => setModal({ projeto: p })} className="rounded-md border border-[#a78bfa]/20 px-3 py-1.5 text-xs font-medium text-[#a78bfa]/60 hover:bg-[#a78bfa]/10 hover:text-[#a78bfa] transition">Gerir</button>
                       <button onClick={() => setConfirmDelete(p.id_projetos)} className="rounded-md border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition">Eliminar</button>
                     </div>
                   </td>
@@ -578,7 +596,7 @@ export default function ProjetosPage() {
             onSave={handleCreate} 
             onCancel={() => setModal(null)} 
             saving={saving} 
-            isNew={true} /* Esta propriedade ativa a galeria no modo Novo Projeto */
+            isNew={true} 
           />
         </Modal>
       )}
@@ -598,8 +616,8 @@ export default function ProjetosPage() {
           <hr className="border-white/5 mb-6" />
           <div>
             <div className="mb-4">
-              <h3 className="text-sm font-semibold text-[#4f9eff]">Galeria do Projeto</h3>
-              <p className="text-xs text-white/40 mt-0.5">Adiciona as imagens ou vídeos detalhados deste projeto.</p>
+              <h3 className="text-sm font-semibold text-[#a78bfa]">Galeria do Projeto</h3>
+              <p className="text-xs text-white/40 mt-0.5">Adiciona as imagens ou vídeos deste projeto.</p>
             </div>
             <GaleriaProjeto id_projetos={modal.projeto.id_projetos} />
           </div>
